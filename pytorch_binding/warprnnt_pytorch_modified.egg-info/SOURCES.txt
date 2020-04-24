@@ -1,0 +1,10 @@
+README.md
+setup.py
+src/binding.cpp
+test/test.py
+test/test_time.py
+warprnnt_pytorch_modified/__init__.py
+warprnnt_pytorch_modified.egg-info/PKG-INFO
+warprnnt_pytorch_modified.egg-info/SOURCES.txt
+warprnnt_pytorch_modified.egg-info/dependency_links.txt
+warprnnt_pytorch_modified.egg-info/top_level.txt

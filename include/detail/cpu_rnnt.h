@@ -178,16 +178,16 @@ CpuRNNT<ProbT>::compute_alphas(const ProbT* const log_probs, int T, int U, ProbT
 
     CpuRNNT_index idx(U, maxU_, minibatch_, alphabet_size_, batch_first);
 
-    alphas[0] = 0;
+    alphas[0] = 1;
 
     for (int t = 0; t < T; ++t) {
         for (int u = 0; u < U; ++u) {
             if (u == 0 && t > 0)
-                alphas[idx(t, 0)] = alphas[idx(t-1, 0)] + log_probs[idx(t-1, 0) * 2];
+                alphas[idx(t, 0)] = alphas[idx(t-1, 0)] + rnnt_helper::log_sum_exp<ProbT>(log_probs[idx(t-1, u) * 2],log_probs[idx(t-1, u) * 2 + 1]);
             if (t == 0 && u > 0)
                 alphas[idx(0, u)] = alphas[idx(0, u-1)] + log_probs[idx(0, u-1) * 2 + 1];
             if (t > 0 && u > 0) {
-                ProbT no_emit = alphas[idx(t-1, u)] + log_probs[idx(t-1, u) * 2];
+	      ProbT no_emit = alphas[idx(t-1, u)] + rnnt_helper::log_sum_exp<ProbT>(log_probs[idx(t-1, u) * 2],log_probs[idx(t-1, u) * 2 + 1]);
                 ProbT emit = alphas[idx(t, u-1)] + log_probs[idx(t, u-1) * 2 + 1];
                 alphas[idx(t, u)] = rnnt_helper::log_sum_exp<ProbT>(emit, no_emit);
             }
@@ -206,7 +206,7 @@ CpuRNNT<ProbT>::compute_alphas(const ProbT* const log_probs, int T, int U, ProbT
     printf("\n");
 #endif
 
-    ProbT loglike = alphas[idx(T-1, U-1)] + log_probs[idx(T-1, U-1) * 2];
+    ProbT loglike = alphas[idx(T-1, U-1)] + rnnt_helper::log_sum_exp<ProbT>(log_probs[idx(T-1, U-1) * 2],log_probs[idx(T-1, U-1) * 2 + 1]);
 
     return loglike;
 }
@@ -219,16 +219,16 @@ CpuRNNT<ProbT>::compute_betas_and_grad(ProbT* grad, const ProbT* const log_probs
 
     CpuRNNT_index idx(U, maxU_, minibatch_, alphabet_size_, batch_first);
 
-    betas[idx(T-1, U-1)] = log_probs[idx(T-1, U-1) * 2];
+    betas[idx(T-1, U-1)] = rnnt_helper::log_sum_exp<ProbT>(log_probs[idx(T-1, U-1) * 2],log_probs[idx(T-1, U-1) * 2 + 1]);
 
     for (int t = T-1; t >= 0; --t) {
         for (int u = U-1; u >= 0; --u) {
             if (u == U-1 && t < T-1)
-                betas[idx(t, U-1)] = betas[idx(t+1, U-1)] + log_probs[idx(t, U-1) * 2];
+                betas[idx(t, U-1)] = betas[idx(t+1, U-1)] + rnnt_helper::log_sum_exp<ProbT>(log_probs[idx(t, U-1) * 2],log_probs[idx(t, U-1) * 2 + 1]);
             if (t == T-1 && u < U-1)
                 betas[idx(T-1, u)] = betas[idx(T-1, u+1)] + log_probs[idx(T-1, u) * 2 + 1];
             if (t < T-1 && u < U-1) {
-                ProbT no_emit = betas[idx(t+1, u)] + log_probs[idx(t, u) * 2];
+	      ProbT no_emit = betas[idx(t+1, u)] + rnnt_helper::log_sum_exp<ProbT>(log_probs[idx(t, u) * 2], log_probs[idx(t, u) * 2 + 1]) ;
                 ProbT emit = betas[idx(t, u+1)] + log_probs[idx(t, u) * 2 + 1];
                 betas[idx(t, u)] = rnnt_helper::log_sum_exp<ProbT>(emit, no_emit);
             }

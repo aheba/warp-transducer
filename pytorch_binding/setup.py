@@ -32,7 +32,7 @@ if not os.path.exists(os.path.join(warp_rnnt_path, "libwarprnnt" + lib_ext)):
 include_dirs = [os.path.realpath('../include')]
 
 setup(
-    name='warprnnt_pytorch',
+    name='warprnnt_pytorch_modified',
     version="0.1",
     description="PyTorch wrapper for RNN-Transducer",
     url="https://github.com/HawkAaron/warp-transducer",
@@ -41,7 +41,7 @@ setup(
     packages=find_packages(),
     ext_modules=[
         CppExtension(
-            name='warprnnt_pytorch.warp_rnnt',
+            name='warprnnt_pytorch_modified.warp_rnnt',
             sources=['src/binding.cpp'],
             include_dirs=include_dirs,
             library_dirs=[os.path.realpath(warp_rnnt_path)],
