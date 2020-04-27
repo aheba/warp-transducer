@@ -18,22 +18,30 @@ __global__ void compute_alphas_kernel(const Tp* const acts, const Tp* const deno
     const int U = ylen[b] + 1;
     const int* labels = mlabels + b * (maxU - 1); // mb label start point
     const int offset = b * maxT * maxU;
+    Tp emit, no_emit, emit_same, loglike;
     alphas += offset;
-    if (u == 0) alphas[0] = 0;
+    if (u == 0) alphas[0] = 1;
 
     __syncthreads();
     for (int n = 1; n < T+U-1; ++n) {
         int t = n - u;
         if (u == 0) {
             if (t > 0 && t < T) {
-                alphas[t * maxU + u] = alphas[(t-1) * maxU + u] + logp(denom, acts, maxT, maxU, alphabet_size, b, t-1, 0, blank_);
+	      //alphas[t * maxU + u] = alphas[(t-1) * maxU + u] + logp(denom, acts, maxT, maxU, alphabet_size, b, t-1, 0, blank_);
+	      //alphas[t * maxU + u] = alphas[(t-1) * maxU + u] + logp(denom, acts, maxT, maxU, alphabet_size, b, t-1, 0, blank_);
+	      no_emit=logp(denom, acts, maxT, maxU, alphabet_size, b, t-1, 0, blank_);
+	      emit_same=logp(denom, acts, maxT, maxU, alphabet_size, b, t-1, 0, labels[0]);
+	      alphas[t * maxU + u] = alphas[(t-1) * maxU + u] + rnnt_helper::log_sum_exp<Tp>(emit_same,no_emit);
             }
         } else if (u < U) {
             if (t == 0)
                 alphas[u] = alphas[u-1] + logp(denom, acts, maxT, maxU, alphabet_size, b, 0, u-1, labels[u-1]);
             else if (t > 0 && t < T) {
-                Tp no_emit = alphas[(t-1) * maxU + u] + logp(denom, acts, maxT, maxU, alphabet_size, b, t-1, u, blank_);
-                Tp emit = alphas[t * maxU + u-1] + logp(denom, acts, maxT, maxU, alphabet_size, b, t, u-1, labels[u-1]);
+	        no_emit=logp(denom, acts, maxT, maxU, alphabet_size, b, t-1, u, blank_);
+		emit_same=logp(denom, acts, maxT, maxU, alphabet_size, b, t-1, u, labels[u]);
+		no_emit = alphas[(t-1) * maxU + u] + rnnt_helper::log_sum_exp<Tp>(emit_same,no_emit);
+                //Tp no_emit = alphas[(t-1) * maxU + u] + logp(denom, acts, maxT, maxU, alphabet_size, b, t-1, u, blank_);
+                emit = alphas[t * maxU + u-1] + logp(denom, acts, maxT, maxU, alphabet_size, b, t, u-1, labels[u-1]);
                 alphas[t * maxU + u] = rnnt_helper::log_sum_exp<Tp>(emit, no_emit);
             }
         }
@@ -41,8 +49,11 @@ __global__ void compute_alphas_kernel(const Tp* const acts, const Tp* const deno
     }
 
     if (u == 0) {
-        Tp loglike = alphas[(T-1) * maxU + U-1] + logp(denom, acts, maxT, maxU, alphabet_size, b, T-1, U-1, blank_);
-        llForward[b] = loglike;
+      //Tp loglike = alphas[(T-1) * maxU + U-1] + logp(denom, acts, maxT, maxU, alphabet_size, b, T-1, U-1, blank_);
+      no_emit = logp(denom, acts, maxT, maxU, alphabet_size, b, T-1, U-1, blank_);
+      emit_same = logp(denom, acts, maxT, maxU, alphabet_size, b, T-1, U-1, labels[U-1]);
+      loglike = alphas[(T-1) * maxU + U-1] + rnnt_helper::log_sum_exp<Tp>(emit_same, no_emit);
+      llForward[b] = loglike;
     }
 }
 
@@ -54,24 +65,36 @@ __global__ void compute_alphas_kernel_naive(const Tp* const acts, const Tp* cons
     const int U = ylen[tid] + 1;
     const int* labels = mlabels + tid * (maxU - 1); // mb label start point
     const int offset = tid * maxT * maxU;
+    Tp emit, no_emit, emit_same, loglike;
     alphas += offset;
-    alphas[0] = 0;
+    alphas[0] = 1;
 
     for (int t = 0; t < T; ++t) {
         for (int u = 0; u < U; ++u) {
             if (u == 0 && t > 0)
-                alphas[t * maxU + u] = alphas[(t-1) * maxU + u] + logp(denom, acts, maxT, maxU, alphabet_size, tid, t-1, 0, blank_);
+	      {
+		//alphas[t * maxU + u] = alphas[(t-1) * maxU + u] + logp(denom, acts, maxT, maxU, alphabet_size, tid, t-1, 0, blank_);
+	      no_emit=logp(denom, acts, maxT, maxU, alphabet_size, tid, t-1, 0, blank_);
+	      emit_same=logp(denom, acts, maxT, maxU, alphabet_size, tid, t-1, 0, labels[0]);
+	      alphas[t * maxU + u] = alphas[(t-1) * maxU + u] + rnnt_helper::log_sum_exp<Tp>(emit_same,no_emit);
+	      }
             if (t == 0 && u > 0)
                 alphas[u] = alphas[u-1] + logp(denom, acts, maxT, maxU, alphabet_size, tid, 0, u-1, labels[u-1]);
             if (t > 0 && u > 0) {
-                Tp no_emit = alphas[(t-1) * maxU + u] + logp(denom, acts, maxT, maxU, alphabet_size, tid, t-1, u, blank_);
-                Tp emit = alphas[t * maxU + u-1] + logp(denom, acts, maxT, maxU, alphabet_size, tid, t, u-1, labels[u-1]);
-                alphas[t * maxU + u] = rnnt_helper::log_sum_exp<Tp>(emit, no_emit);
+	      no_emit=logp(denom, acts, maxT, maxU, alphabet_size, tid, t-1, u, blank_);
+	      emit_same=logp(denom, acts, maxT, maxU, alphabet_size, tid, t-1, u, labels[u]);
+	      no_emit = alphas[(t-1) * maxU + u] + rnnt_helper::log_sum_exp<Tp>(emit_same,no_emit);
+	      //Tp no_emit = alphas[(t-1) * maxU + u] + logp(denom, acts, maxT, maxU, alphabet_size, tid, t-1, u, blank_);
+	      emit = alphas[t * maxU + u-1] + logp(denom, acts, maxT, maxU, alphabet_size, tid, t, u-1, labels[u-1]);
+	      alphas[t * maxU + u] = rnnt_helper::log_sum_exp<Tp>(emit, no_emit);
             }
         }
     }
 
-    Tp loglike = alphas[(T-1) * maxU + U-1] + logp(denom, acts, maxT, maxU, alphabet_size, tid, T-1, U-1, blank_);
+    //Tp loglike = alphas[(T-1) * maxU + U-1] + logp(denom, acts, maxT, maxU, alphabet_size, tid, T-1, U-1, blank_);
+    no_emit = logp(denom, acts, maxT, maxU, alphabet_size, tid, T-1, U-1, blank_);
+    emit_same = logp(denom, acts, maxT, maxU, alphabet_size, tid, T-1, U-1, labels[U-1]);
+    loglike = alphas[(T-1) * maxU + U-1] + rnnt_helper::log_sum_exp<Tp>(emit_same, no_emit);
     llForward[tid] = loglike;
 }
 
@@ -85,23 +108,37 @@ __global__ void compute_betas_kernel(const Tp* const acts, const Tp* const denom
     const int U = ylen[b] + 1;
     const int* labels = mlabels + b * (maxU - 1);
     const int offset = b * maxT * maxU;
+    Tp emit, no_emit, emit_same;
     betas += offset;
     if (u == 0)
-        betas[(T-1) * maxU + U-1] = logp(denom, acts, maxT, maxU, alphabet_size, b, T-1, U-1, blank_);
+      {
+	//betas[(T-1) * maxU + U-1] = logp(denom, acts, maxT, maxU, alphabet_size, b, T-1, U-1, blank_);
+	no_emit=logp(denom, acts, maxT, maxU, alphabet_size, b, T-1, U-1, blank_);
+	emit_same=logp(denom, acts, maxT, maxU, alphabet_size, b, T-1, U-1, labels[U-1]);
+        betas[(T-1) * maxU + U-1] = rnnt_helper::log_sum_exp<Tp>(emit_same,no_emit);
+      }
 
     __syncthreads();
     for (int n = T+U-2; n >= 0; --n) {
         int t = n - u;
         if (u == U-1) {
             if (t >= 0 && t < T-1)
-                betas[t * maxU + U-1] = betas[(t+1) * maxU + U-1] + logp(denom, acts, maxT, maxU, alphabet_size, b, t, U-1, blank_);
+	      {
+		//betas[t * maxU + U-1] = betas[(t+1) * maxU + U-1] + logp(denom, acts, maxT, maxU, alphabet_size, b, t, U-1, blank_);
+		no_emit=logp(denom, acts, maxT, maxU, alphabet_size, b, t, U-1, blank_);
+		emit_same=logp(denom, acts, maxT, maxU, alphabet_size, b, t, U-1, labels[U-1]);
+		betas[t * maxU + U-1] = betas[(t+1) * maxU + U-1] + rnnt_helper::log_sum_exp<Tp>(emit_same,no_emit) ;
+	      }
         } else if (u < U) {
             if (t == T-1)
                 betas[(T-1) * maxU + u] = betas[(T-1) * maxU + u+1] + logp(denom, acts, maxT, maxU, alphabet_size, b, T-1, u, labels[u]);
             else if (t >= 0 && t < T-1) {
-                Tp no_emit = betas[(t+1) * maxU + u] + logp(denom, acts, maxT, maxU, alphabet_size, b, t, u, blank_);
-                Tp emit = betas[t * maxU + u+1] + logp(denom, acts, maxT, maxU, alphabet_size, b, t, u, labels[u]);
-                betas[t * maxU + u] = rnnt_helper::log_sum_exp<Tp>(emit, no_emit);
+	      no_emit=logp(denom, acts, maxT, maxU, alphabet_size, b, t, u, blank_);
+	      emit_same=logp(denom, acts, maxT, maxU, alphabet_size, b, t, u, labels[u]);
+	      no_emit = betas[(t+1) * maxU + u] + rnnt_helper::log_sum_exp<Tp>(emit_same,no_emit);
+	      //Tp no_emit = betas[(t+1) * maxU + u] + logp(denom, acts, maxT, maxU, alphabet_size, b, t, u, blank_);
+	      emit = betas[t * maxU + u+1] + logp(denom, acts, maxT, maxU, alphabet_size, b, t, u, labels[u]);
+	      betas[t * maxU + u] = rnnt_helper::log_sum_exp<Tp>(emit, no_emit);
             }
         }
         __syncthreads();
@@ -121,18 +158,28 @@ __global__ void compute_betas_kernel_naive(const Tp* const acts, const Tp* const
     const int* labels = mlabels + tid * (maxU - 1);
     const int offset = tid * maxT * maxU;
     betas += offset;
-    betas[(T-1) * maxU + U-1] = logp(denom, acts, maxT, maxU, alphabet_size, tid, T-1, U-1, blank_);
-
+    Tp emit, no_emit, emit_same;
+    //betas[(T-1) * maxU + U-1] = logp(denom, acts, maxT, maxU, alphabet_size, tid, T-1, U-1, blank_);
+    no_emit=logp(denom, acts, maxT, maxU, alphabet_size, tid, T-1, U-1, blank_);
+    emit_same=logp(denom, acts, maxT, maxU, alphabet_size, tid, T-1, U-1, labels[U-1]);
+    betas[(T-1) * maxU + U-1] = rnnt_helper::log_sum_exp<Tp>(emit_same,no_emit);
     for (int t = T-1; t >=0; --t) {
         for (int u = U-1; u >= 0; --u) {
-            if (u == U-1 && t < T-1)
-                betas[t * maxU + U-1] = betas[(t+1) * maxU + U-1] + logp(denom, acts, maxT, maxU, alphabet_size, tid, t, U-1, blank_);
+	  if (u == U-1 && t < T-1){
+	    //betas[t * maxU + U-1] = betas[(t+1) * maxU + U-1] + logp(denom, acts, maxT, maxU, alphabet_size, tid, t, U-1, blank_);
+	    no_emit=logp(denom, acts, maxT, maxU, alphabet_size, tid, t, U-1, blank_);
+	    emit_same=logp(denom, acts, maxT, maxU, alphabet_size, tid, t, U-1, labels[U-1]);
+	    betas[t * maxU + U-1] = betas[(t+1) * maxU + U-1] + rnnt_helper::log_sum_exp<Tp>(emit_same,no_emit) ;
+	  }
             if (t == T-1 && u < U-1)
                 betas[(T-1) * maxU + u] = betas[(T-1) * maxU + u+1] + logp(denom, acts, maxT, maxU, alphabet_size, tid, T-1, u, labels[u]);
             if (t < T-1 && u < U-1) {
-                Tp no_emit = betas[(t+1) * maxU + u] + logp(denom, acts, maxT, maxU, alphabet_size, tid, t, u, blank_);
-                Tp emit = betas[t * maxU + u+1] + logp(denom, acts, maxT, maxU, alphabet_size, tid, t, u, labels[u]);
-                betas[t * maxU + u] = rnnt_helper::log_sum_exp<Tp>(emit, no_emit);
+	      no_emit=logp(denom, acts, maxT, maxU, alphabet_size, tid, t, u, blank_);
+	      emit_same=logp(denom, acts, maxT, maxU, alphabet_size, tid, t, u, labels[u]);
+	      no_emit = betas[(t+1) * maxU + u] + rnnt_helper::log_sum_exp<Tp>(emit_same,no_emit);
+	      //Tp no_emit = betas[(t+1) * maxU + u] + logp(denom, acts, maxT, maxU, alphabet_size, tid, t, u, blank_);
+	      emit = betas[t * maxU + u+1] + logp(denom, acts, maxT, maxU, alphabet_size, tid, t, u, labels[u]);
+	      betas[t * maxU + u] = rnnt_helper::log_sum_exp<Tp>(emit, no_emit);
             }
         }
     }
