@@ -1,0 +1,46 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../include/rnnt.h
+cstddef
+-
+
+/network/tmp1/abdelwah/singularity_ngc/warp-transducer-modified/tests/random.cpp
+vector
+-
+random
+-
+
+/network/tmp1/abdelwah/singularity_ngc/warp-transducer-modified/tests/test.h
+stdexcept
+-
+vector
+-
+limits
+-
+numeric
+-
+rnnt.h
+-
+
+/network/tmp1/abdelwah/singularity_ngc/warp-transducer-modified/tests/test_cpu.cpp
+cmath
+-
+random
+-
+tuple
+-
+vector
+-
+iostream
+-
+rnnt.h
+-
+test.h
+/network/tmp1/abdelwah/singularity_ngc/warp-transducer-modified/tests/test.h
+

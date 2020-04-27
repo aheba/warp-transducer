@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC  -O2 -fopenmp  -shared -Wl,-soname,libwarprnnt.so -o libwarprnnt.so CMakeFiles/warprnnt.dir/src/warprnnt_generated_rnnt_entrypoint.cu.o /usr/local/cuda/lib64/libcudart_static.a -lpthread -ldl -lrt 

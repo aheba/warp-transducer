@@ -1,0 +1,11 @@
+/network/tmp1/abdelwah/singularity_ngc/warp-transducer-modified/build/CMakeFiles/install/strip.dir
+/network/tmp1/abdelwah/singularity_ngc/warp-transducer-modified/build/CMakeFiles/install/local.dir
+/network/tmp1/abdelwah/singularity_ngc/warp-transducer-modified/build/CMakeFiles/install.dir
+/network/tmp1/abdelwah/singularity_ngc/warp-transducer-modified/build/CMakeFiles/list_install_components.dir
+/network/tmp1/abdelwah/singularity_ngc/warp-transducer-modified/build/CMakeFiles/warprnnt.dir
+/network/tmp1/abdelwah/singularity_ngc/warp-transducer-modified/build/CMakeFiles/edit_cache.dir
+/network/tmp1/abdelwah/singularity_ngc/warp-transducer-modified/build/CMakeFiles/test_gpu.dir
+/network/tmp1/abdelwah/singularity_ngc/warp-transducer-modified/build/CMakeFiles/test_time_gpu.dir
+/network/tmp1/abdelwah/singularity_ngc/warp-transducer-modified/build/CMakeFiles/test_time.dir
+/network/tmp1/abdelwah/singularity_ngc/warp-transducer-modified/build/CMakeFiles/rebuild_cache.dir
+/network/tmp1/abdelwah/singularity_ngc/warp-transducer-modified/build/CMakeFiles/test_cpu.dir

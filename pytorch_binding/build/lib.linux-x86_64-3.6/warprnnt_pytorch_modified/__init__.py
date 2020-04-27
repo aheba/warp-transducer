@@ -1,5 +1,5 @@
 import torch
-import warprnnt_pytorch as warp_rnnt
+import warprnnt_pytorch_modified as warp_rnnt
 from torch.autograd import Function
 from torch.nn import Module
 
